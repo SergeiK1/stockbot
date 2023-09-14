@@ -333,8 +333,8 @@ def trade_strategy(ticker_symbol):
     data['RSI'] = 100 - (100 / (1 + rs))
     
     # Buy and Sell signals
-    buy_signals = []
-    sell_signals = []
+    buy_signals = [float('nan')]  # Initialize with NaN for index 0
+    sell_signals = [float('nan')]  # Initialize with NaN for index 0
     
     for i in range(1, len(data)):
         # Buy Entry
