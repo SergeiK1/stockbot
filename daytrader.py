@@ -15,6 +15,21 @@ acc_username = "NJ_21_ZZ1125"
 acc_password = "EXCZ4300" 
 total_capital = 100000
 
+print("------------ MAKE SURE TO UPDATE CURRENT total_capital BEFORE TRADING --------------")
+
+class InsufficientCapitalError(Exception):
+    pass
+
+def fetch_current_price(ticker_symbol):
+    try:
+        stock = yf.Ticker(ticker_symbol)
+        # Fetch the latest day's data
+        today_data = stock.history(period="1d")
+        # Return the Close price of the stock for the latest day
+        return today_data['Close'][0]
+    except Exception as e:
+        print(f"An error occurred while fetching the current price for {ticker_symbol}: {str(e)}")
+        return None
 
 def buy_stock(driver, ticker, number_of_shares):
     """
@@ -62,7 +77,7 @@ def buy_stock(driver, ticker, number_of_shares):
     )
     confirm_trade_button.click()
 
-    print(f"[BUY]: {ticker} {number_of_shares} shares")
+    # print(f"[BUY]: {ticker} {number_of_shares} shares")
 
 # Example usage:
 # driver = webdriver.Chrome()
@@ -114,7 +129,7 @@ def sell_stock(driver, ticker, number_of_shares):
         EC.presence_of_element_located((By.ID, 'btnConfirmTrade'))
     )
     confirm_trade_button.click()
-    print(f"[SELL]: {ticker} {number_of_shares} shares")
+    # print(f"[SELL]: {ticker} {number_of_shares} shares")
 
 # Example usage:
 # driver = webdriver.Chrome()
@@ -238,9 +253,24 @@ def trade_stocks(action, ticker, number_of_shares):
     - number_of_shares: The number of shares to trade.
     - acc_username: Account username for login.
     - acc_password: Account password for login.
+
     """
+
     try: 
+        global total_capital
+        price = fetch_current_price(ticker)  # Assuming you have a function to fetch the current price
         
+        if action == 'buy':
+            cost = price * number_of_shares
+            if cost <= total_capital:  # Ensure you have enough capital to buy
+                total_capital -= cost
+                print(f"[BUY]: {ticker} {number_of_shares} shares")
+            else:
+                 raise InsufficientCapitalError(f"Insufficient capital to buy {number_of_shares} shares of {ticker}")
+        elif action == 'sell':
+            proceeds = price * number_of_shares
+            total_capital += proceeds
+            print(f"[SELL]: {ticker} {number_of_shares} shares")
         # Set up the driver (assuming you're using Chrome; you can use others like Firefox too)
         driver = webdriver.Chrome()
 
@@ -272,6 +302,7 @@ def trade_stocks(action, ticker, number_of_shares):
             print("Invalid action provided!")
 
         # Close the driver after completing the action
+        print(f"[ TOTAL CAPITAL ] {total_capital}")
         driver.close()
 
 
@@ -300,19 +331,20 @@ def fetch_data(ticker_symbol):
     hist_data = ticker.history(period="1d", interval="15m")
     return hist_data
 
-def calculate_shares_to_buy(entry_price, stop_loss_price, total_capital, risk_percentage=0.03):
+def calculate_shares_to_buy(current_price, previous_price, total_capital, risk_percentage=0.02, max_investment_ratio=0.20):
     risk_per_trade = total_capital * risk_percentage
-    risk_per_share = abs(entry_price - stop_loss_price)
+    risk_per_share = abs(current_price - previous_price)
     
-    # Calculate the number of shares
-    num_shares = int(risk_per_trade / risk_per_share)
+    # Calculate number of shares based on risk management
+    num_shares_based_on_risk = int(risk_per_trade / risk_per_share)
     
-    # Ensure you don't spend more than your capital
-    total_cost = num_shares * entry_price
-    if total_cost > total_capital:
-        num_shares = int(total_capital / entry_price)
+    # Calculate maximum number of shares based on investment limit
+    max_investment_amount = total_capital * max_investment_ratio
+    num_shares_based_on_investment = int(max_investment_amount / current_price)
     
-    return num_shares
+    # Return the minimum of the two to ensure both conditions are met
+    return min(num_shares_based_on_risk, num_shares_based_on_investment)
+
 
 def trade_strategy(ticker_symbol):
     data = fetch_data(ticker_symbol)
@@ -371,19 +403,16 @@ def trade_strategy(ticker_symbol):
 # --------------------------  Execute Code  -------------------------------
 
 
-
 # Monitor the stocks
 while True:
     for stock in stocks_to_monitor:
         try:
             trade_strategy(stock)
+        except InsufficientCapitalError as ice:
+            print(f"Error for {stock}: {str(ice)}")
         except Exception as e:
             print(f"An error occurred while executing the strategy for {stock}: {str(e)}")
-    time.sleep(500)
-
-
-
-
+    time.sleep(300)
 
 
 
