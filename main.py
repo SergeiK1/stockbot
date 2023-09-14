@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import yfinance as yf
 import time
 import pandas as pd
@@ -238,44 +239,52 @@ def trade_stocks(action, ticker, number_of_shares):
     - acc_username: Account username for login.
     - acc_password: Account password for login.
     """
+    try: 
+        
+        # Set up the driver (assuming you're using Chrome; you can use others like Firefox too)
+        driver = webdriver.Chrome()
 
+        # Navigate to the website and login
+        driver.get('https://www.stockmarketgame.org/login.html')
+        account_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'ACCOUNTNO')))
+        account_input.send_keys(acc_username)
+        password_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'USER_PIN')))
+        password_input.send_keys(acc_password)
+        login_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//input[@value="Log In"][contains(@class, "button primary")]')))
+        login_button.click()
+
+        # Once logged in, navigate to the provided website
+        driver.get('https://www.stockmarketgame.org/pa.html')
+        driver.get('https://www.stockmarketgame.org/eat.html')
+        stock_trade_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'aStockTrade')))
+        stock_trade_button.click()
+
+        # Trading actions
+        if action == "buy":
+            buy_stock(driver, ticker, number_of_shares)
+        elif action == "sell":
+            sell_stock(driver, ticker, number_of_shares)
+        elif action == "short":
+            short_stock(driver, ticker, number_of_shares)
+        elif action == "shortcover":
+            shortcover_stock(driver, ticker, number_of_shares)
+        else:
+            print("Invalid action provided!")
+
+        # Close the driver after completing the action
+        driver.close()
+
+
+        # Example usage:
+        # trade_stocks('buy', 'AAPL', 5, 'your_username', 'your_password')
     
-    # Set up the driver (assuming you're using Chrome; you can use others like Firefox too)
-    driver = webdriver.Chrome()
+    except TimeoutException:
+        print(f"TimeoutException: Failed to find element for {ticker}.")
+    except NoSuchElementException:
+        print(f"NoSuchElementException: Element not found for {ticker}.")
+    except Exception as e:
+        print(f"An error occurred while trading {ticker}: {str(e)}")
 
-    # Navigate to the website and login
-    driver.get('https://www.stockmarketgame.org/login.html')
-    account_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'ACCOUNTNO')))
-    account_input.send_keys(acc_username)
-    password_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'USER_PIN')))
-    password_input.send_keys(acc_password)
-    login_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//input[@value="Log In"][contains(@class, "button primary")]')))
-    login_button.click()
-
-    # Once logged in, navigate to the provided website
-    driver.get('https://www.stockmarketgame.org/pa.html')
-    driver.get('https://www.stockmarketgame.org/eat.html')
-    stock_trade_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'aStockTrade')))
-    stock_trade_button.click()
-
-    # Trading actions
-    if action == "buy":
-        buy_stock(driver, ticker, number_of_shares)
-    elif action == "sell":
-        sell_stock(driver, ticker, number_of_shares)
-    elif action == "short":
-        short_stock(driver, ticker, number_of_shares)
-    elif action == "shortcover":
-        shortcover_stock(driver, ticker, number_of_shares)
-    else:
-        print("Invalid action provided!")
-
-    # Close the driver after completing the action
-    driver.close()
-
-
-    # Example usage:
-    # trade_stocks('buy', 'AAPL', 5, 'your_username', 'your_password')
 
 
 
@@ -364,12 +373,11 @@ def trade_strategy(ticker_symbol):
 # Monitor the stocks
 while True:
     for stock in stocks_to_monitor:
-        trade_strategy(stock)
-    time.sleep(300) 
-
-
-
-
+        try:
+            trade_strategy(stock)
+        except Exception as e:
+            print(f"An error occurred while executing the strategy for {stock}: {str(e)}")
+    time.sleep(300)
 
 
 
