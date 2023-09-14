@@ -2,17 +2,31 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import yfinance as yf
+
+def fetch_data(ticker_symbol):
+    # Create a Ticker object
+    ticker = yf.Ticker(ticker_symbol)
+
+    # Fetch historical data
+    hist_data = ticker.history(period="1d")  # Fetches data for the latest day. You can adjust the period as needed.
+
+    # Fetch other details if required
+    info = ticker.info
+
+    return hist_data, info
+
+# Example usage:
+ticker_symbol = "AAPL"  # Replace with your desired ticker symbol
+data, info = fetch_data(ticker_symbol)
+print(data)
+print(info)
 
 
 
-# Username and Password 
-
+# GLOBAL VARIBLES 
 acc_username = "NJ_21_ZZ1125"
 acc_password = "EXCZ4300" 
-
-# Set up the driver (assuming you're using Chrome; you can use others like Firefox too)
-driver = webdriver.Chrome()
-
 
 
 def buy_stock(driver, ticker, number_of_shares):
@@ -227,37 +241,55 @@ def shortcover_stock(driver, ticker, number_of_shares):
 # driver.get('YOUR_WEBSITE_URL_HERE')
 # buy_stock(driver, "AAPL", 5)
 
-# Navigate to the website
-driver.get('https://www.stockmarketgame.org/login.html')
+def trade_stocks(action, ticker, number_of_shares):
+    """
+    Automates stock trading actions using Selenium WebDriver.
 
-# Wait for the page to load and locate the input field with name="ACCOUNTNO"
-account_input = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.NAME, 'ACCOUNTNO'))
-)
-account_input.send_keys(acc_username)
+    Parameters:
+    - action: The trading action to perform. Can be 'buy', 'sell', 'short', or 'shortcover'.
+    - ticker: The stock ticker symbol.
+    - number_of_shares: The number of shares to trade.
+    - acc_username: Account username for login.
+    - acc_password: Account password for login.
+    """
 
-# Locate the password input field with name="USER_PIN"
-password_input = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.NAME, 'USER_PIN'))
-)
-password_input.send_keys(acc_password)
+    
+    # Set up the driver (assuming you're using Chrome; you can use others like Firefox too)
+    driver = webdriver.Chrome()
 
-# Locate and click the "Log In" button with the given attributes
-login_button = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.XPATH, '//input[@value="Log In"][contains(@class, "button primary")]'))
-)
-login_button.click()
+    # Navigate to the website and login
+    driver.get('https://www.stockmarketgame.org/login.html')
+    account_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'ACCOUNTNO')))
+    account_input.send_keys(acc_username)
+    password_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, 'USER_PIN')))
+    password_input.send_keys(acc_password)
+    login_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, '//input[@value="Log In"][contains(@class, "button primary")]')))
+    login_button.click()
 
-# Once logged in, navigate to the provided website
-driver.get('https://www.stockmarketgame.org/pa.html')
-driver.get('https://www.stockmarketgame.org/eat.html')
+    # Once logged in, navigate to the provided website
+    driver.get('https://www.stockmarketgame.org/pa.html')
+    driver.get('https://www.stockmarketgame.org/eat.html')
+    stock_trade_button = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'aStockTrade')))
+    stock_trade_button.click()
 
-# Wait for the page to load and locate the "Stock Trade" button with the given attributes
-stock_trade_button = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.ID, 'aStockTrade'))
-)
-stock_trade_button.click()
+    # Trading actions
+    if action == "buy":
+        buy_stock(driver, ticker, number_of_shares)
+    elif action == "sell":
+        sell_stock(driver, ticker, number_of_shares)
+    elif action == "short":
+        short_stock(driver, ticker, number_of_shares)
+    elif action == "shortcover":
+        shortcover_stock(driver, ticker, number_of_shares)
+    else:
+        print("Invalid action provided!")
 
+    # Close the driver after completing the action
+    driver.close()
+
+
+    # Example usage:
+    # trade_stocks('buy', 'AAPL', 5, 'your_username', 'your_password')
 
 
 # Day Trading Strategy Using RSI and MACD:
@@ -313,13 +345,12 @@ stock_trade_button.click()
 
 
 
-# Execute Code Test -------------------------------
-
-# buy_stock(driver, "AAPL", 11)
-# sell_stock(driver, "AAPl", 11)
-# short_stock(driver, "AAPL", 11)
-# shortcover_stock(driver, "AAPL", 11)
 
 
-# Continue with other operations or close the driver
-# driver.close()
+
+
+
+
+# --------------------------  Execute Code Test -------------------------------
+
+# trade_stocks('buy', 'AAPL', 15)
