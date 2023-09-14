@@ -62,7 +62,7 @@ def buy_stock(driver, ticker, number_of_shares):
     )
     confirm_trade_button.click()
 
-    print(f"[BUY]: {ticker} {number_of_shares}")
+    print(f"[BUY]: {ticker} {number_of_shares} shares")
 
 # Example usage:
 # driver = webdriver.Chrome()
@@ -114,7 +114,7 @@ def sell_stock(driver, ticker, number_of_shares):
         EC.presence_of_element_located((By.ID, 'btnConfirmTrade'))
     )
     confirm_trade_button.click()
-    print(f"[SELL]: {ticker} {number_of_shares}")
+    print(f"[SELL]: {ticker} {number_of_shares} shares")
 
 # Example usage:
 # driver = webdriver.Chrome()
@@ -168,7 +168,7 @@ def short_stock(driver, ticker, number_of_shares):
     )
     confirm_trade_button.click()
 
-    print(f"[SHORT]: {ticker} {number_of_shares}")
+    print(f"[SHORT]: {ticker} {number_of_shares} shares")
 
 # Example usage:
 # driver = webdriver.Chrome()
@@ -221,7 +221,7 @@ def shortcover_stock(driver, ticker, number_of_shares):
     )
     confirm_trade_button.click()
 
-    print(f"[SHORT-COVER]: {ticker} {number_of_shares}")
+    print(f"[SHORT-COVER]: {ticker} {number_of_shares} shares")
 
 # Example usage:
 # driver = webdriver.Chrome()
@@ -300,7 +300,7 @@ def fetch_data(ticker_symbol):
     hist_data = ticker.history(period="1d", interval="15m")
     return hist_data
 
-def calculate_shares_to_buy(entry_price, stop_loss_price, total_capital, risk_percentage=0.01):
+def calculate_shares_to_buy(entry_price, stop_loss_price, total_capital, risk_percentage=0.03):
     risk_per_trade = total_capital * risk_percentage
     risk_per_share = abs(entry_price - stop_loss_price)
     
@@ -358,10 +358,12 @@ def trade_strategy(ticker_symbol):
             # Calculate the number of shares to buy
             shares_to_buy = calculate_shares_to_buy(data['Close'].iloc[i], data['Close'].iloc[i-1], total_capital)
             trade_stocks('buy', ticker_symbol, shares_to_buy)
+            # print(f"[BUY]{ticker_symbol} {shares_to_buy} shares ")
         elif not pd.isna(data['Sell_Signal'].iloc[i]):
             # Calculate the number of shares to sell
             shares_to_sell = calculate_shares_to_buy(data['Close'].iloc[i], data['Close'].iloc[i-1], total_capital)
             trade_stocks('sell', ticker_symbol, shares_to_sell)
+            # print(f"[SELL]{ticker_symbol} {shares_to_sell} shares ")
 
 
 
@@ -377,7 +379,7 @@ while True:
             trade_strategy(stock)
         except Exception as e:
             print(f"An error occurred while executing the strategy for {stock}: {str(e)}")
-    time.sleep(300)
+    time.sleep(500)
 
 
 
