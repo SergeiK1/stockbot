@@ -13,7 +13,7 @@ import pandas as pd
 # GLOBAL VARIBLES 
 acc_username = "NJ_21_ZZ1125"
 acc_password = "EXCZ4300" 
-total_capital = 100000
+total_capital = 40000
 
 print("------------ MAKE SURE TO UPDATE CURRENT total_capital BEFORE TRADING --------------")
 
@@ -40,6 +40,13 @@ def buy_stock(driver, ticker, number_of_shares):
     - ticker: The stock ticker symbol.
     - number_of_shares: The number of shares to buy.
     """
+    global total_capital
+    number_of_shares = max(10, number_of_shares)  # Ensure minimum 10 shares
+    current_price = fetch_current_price(ticker)
+    if current_price * number_of_shares > total_capital:
+        raise InsufficientCapitalError("Not enough capital to buy the shares.")
+    
+    total_capital -= current_price * number_of_shares
     
     # Select the "buy" radio button
     buy_radio_button = WebDriverWait(driver, 10).until(
@@ -93,6 +100,12 @@ def sell_stock(driver, ticker, number_of_shares):
     - ticker: The stock ticker symbol.
     - number_of_shares: The number of shares to buy.
     """
+    global total_capital
+    number_of_shares = max(10, number_of_shares)  # Ensure minimum 10 shares
+    current_price = fetch_current_price(ticker)
+    
+    total_capital += current_price * number_of_shares
+
     
     # Select the "sell" radio button
     sell_radio_button = WebDriverWait(driver, 10).until(
@@ -146,6 +159,7 @@ def short_stock(driver, ticker, number_of_shares):
     - ticker: The stock ticker symbol.
     - number_of_shares: The number of shares to buy.
     """
+    number_of_shares = max(10, number_of_shares) 
     
     # Select the "short" radio button
     short_radio_button = WebDriverWait(driver, 10).until(
@@ -200,6 +214,8 @@ def shortcover_stock(driver, ticker, number_of_shares):
     - number_of_shares: The number of shares to buy.
     """
     
+    number_of_shares = max(10, number_of_shares)  # Ensure minimum 10 shares
+
     # Select the "shortcover" radio button
     shortcover_radio_button = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, 'rbShortcover'))
@@ -347,6 +363,7 @@ def calculate_shares_to_buy(current_price, previous_price, total_capital, risk_p
 
 
 def trade_strategy(ticker_symbol):
+    print(f"Checking: {ticker_symbol}")
     data = fetch_data(ticker_symbol)
     
     # Calculate MACD and Signal line
@@ -402,9 +419,10 @@ def trade_strategy(ticker_symbol):
 
 # --------------------------  Execute Code  -------------------------------
 
-
+count = 1
 # Monitor the stocks
 while True:
+    print(f"| ------- Trading Cycle Started [ {count} ] ------- |")
     for stock in stocks_to_monitor:
         try:
             trade_strategy(stock)
@@ -412,7 +430,11 @@ while True:
             print(f"Error for {stock}: {str(ice)}")
         except Exception as e:
             print(f"An error occurred while executing the strategy for {stock}: {str(e)}")
-    time.sleep(300)
+
+    print("| ------- Trading Cycle Complete ------- |")
+    print("Waiting...")
+    count += 1
+    time.sleep(30)
 
 
 
@@ -444,7 +466,7 @@ while True:
 
 
 
-
+# # 
 # Day Trading Strategy Using RSI and MACD:
 # Setup:
 
