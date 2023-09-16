@@ -228,12 +228,12 @@ def start_trading():
     try:
         while True:
             for ticker in stocks_to_monitor:
-                print(f"Executing strategy for {ticker}...")
+                print(f"Executing:  {ticker}...")
                 strategy_RSI_MACD(ticker)
-                print(f"Strategy execution for {ticker} completed.")
+                print(f"Complete: {ticker} ")
             
             # Wait for 1 minute (60 seconds) before the next cycle
-            time.sleep(60)
+            time.sleep(30)
 
     except KeyboardInterrupt:
         print("Trading stopped by user.")
