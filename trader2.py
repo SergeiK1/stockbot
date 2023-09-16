@@ -9,7 +9,7 @@ import pandas as pd
 # GLOBAL VARIBLES 
 acc_username = "NJ_21_ZZ1125"
 acc_password = "EXCZ4300" 
-total_capital = 40000
+total_capital = 35000
 stocks_to_monitor = ["CVNA"]
 
 class InsufficientCapitalError(Exception):
@@ -39,6 +39,7 @@ def fetch_data(ticker_symbol):
     hist_data = ticker.history(period="1d", interval="15m")
     return hist_data
     
+
 
 
 
@@ -138,6 +139,54 @@ def trade_stock(ticker, number_of_shares, action):
 
 
 
+
+
+
+def compute_macd(data, short_window=12, long_window=26, signal_window=9):
+    """
+    Compute the MACD (Moving Average Convergence/Divergence) using a fast and slow exponential moving avg'
+    Return series of MACD and Signal line
+    """
+    macd_data = data.copy()
+    short_ema = macd_data['Close'].ewm(span=short_window, adjust=False).mean()
+    long_ema = macd_data['Close'].ewm(span=long_window, adjust=False).mean()
+    macd_data['MACD'] = short_ema - long_ema
+    macd_data['Signal'] = macd_data['MACD'].ewm(span=signal_window, adjust=False).mean()
+    return macd_data
+
+
+
+
+
+def compute_rsi(data, window=14):
+    """
+    Compute the RSI (Relative Strength Index) for a given data.
+    
+    Parameters:
+    - data: The stock data.
+    - window: The RSI window. Default is 14.
+    
+    Returns:
+    - A DataFrame with the RSI values.
+    """
+    delta = data['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).fillna(0)
+    loss = (-delta.where(delta < 0, 0)).fillna(0)
+
+    avg_gain = gain.rolling(window=window, min_periods=1).mean()
+    avg_loss = loss.rolling(window=window, min_periods=1).mean()
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+
+    rsi_data = data.copy()
+    rsi_data['RSI'] = rsi
+    return rsi_data
+
+
+
+
+
 def strategy_RSI_MACD(ticker):
     """
     Day Trading Strategy Using RSI and MACD.
@@ -158,10 +207,26 @@ def strategy_RSI_MACD(ticker):
         # Fetch the data for the given ticker
         data = fetch_data(ticker)
 
+        # Compute MACD and Signal line
+        macd_data = compute_macd(data)
+
+        # Compute RSI
+        rsi_data = compute_rsi(data)
+        
         for i in range(1, len(data)):
+            # Use macd_data for MACD and Signal values
+            macd = macd_data['MACD'].iloc[i]
+            signal = macd_data['Signal'].iloc[i]
+            prev_macd = macd_data['MACD'].iloc[i - 1]
+            prev_signal = macd_data['Signal'].iloc[i - 1]
+
+            # Use rsi_data for RSI values
+            rsi = rsi_data['RSI'].iloc[i]
+            prev_rsi = rsi_data['RSI'].iloc[i - 1]
+
             # Buy Entry Conditions
-            if (data['MACD'].iloc[i] > data['Signal'].iloc[i] and data['MACD'].iloc[i - 1] <= data['Signal'].iloc[i - 1]) and \
-               (data['RSI'].iloc[i] > 30 and data['RSI'].iloc[i - 1] <= 30):
+            if (macd > signal and prev_macd <= prev_signal) and \
+               (rsi > 30 and prev_rsi <= 30):
                 # Calculate the amount to invest
                 amount_to_invest = total_capital * RISK_PERCENTAGE
                 if amount_to_invest > total_capital:
@@ -178,8 +243,8 @@ def strategy_RSI_MACD(ticker):
                     total_capital -= num_shares * data['Close'].iloc[i]
 
             # Sell Entry Conditions
-            elif (data['MACD'].iloc[i] < data['Signal'].iloc[i] and data['MACD'].iloc[i - 1] >= data['Signal'].iloc[i - 1]) and \
-                 (data['RSI'].iloc[i] < 70 and data['RSI'].iloc[i - 1] >= 70):
+            elif (macd < signal and prev_macd >= prev_signal) and \
+                 (rsi < 70 and prev_rsi >= 70):
                 # Calculate the number of shares to sell
                 num_shares = max(MIN_SHARES, min(num_shares, MAX_SHARES))
 
@@ -188,7 +253,7 @@ def strategy_RSI_MACD(ticker):
                 total_capital += num_shares * data['Close'].iloc[i]
 
             # Exit Conditions for Buy Trades
-            if (data['MACD'].iloc[i] < data['Signal'].iloc[i] or data['RSI'].iloc[i] > 70):
+            if (macd < signal or rsi > 70):
                 # Calculate the number of shares to sell
                 num_shares = max(MIN_SHARES, min(num_shares, MAX_SHARES))
 
@@ -197,7 +262,7 @@ def strategy_RSI_MACD(ticker):
                 total_capital += num_shares * data['Close'].iloc[i]
 
             # Exit Conditions for Sell Trades
-            if (data['MACD'].iloc[i] > data['Signal'].iloc[i] or data['RSI'].iloc[i] < 30):
+            if (macd > signal or rsi < 30):
                 # Calculate the amount to invest
                 amount_to_invest = total_capital * RISK_PERCENTAGE
                 if amount_to_invest > total_capital:
@@ -217,7 +282,6 @@ def strategy_RSI_MACD(ticker):
         print(f"An error occurred while executing the strategy for {ticker}: {str(e)}")
 
 
-
 def start_trading():
     """
     Monitors the stocks in the stocks_to_monitor list and executes the RSI_MACD strategy for each stock.
@@ -232,7 +296,6 @@ def start_trading():
                 strategy_RSI_MACD(ticker)
                 print(f"Complete: {ticker} ")
             
-            # Wait for 1 minute (60 seconds) before the next cycle
             time.sleep(30)
 
     except KeyboardInterrupt:
