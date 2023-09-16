@@ -10,7 +10,8 @@ import pandas as pd
 acc_username = "NJ_21_ZZ1125"
 acc_password = "EXCZ4300" 
 total_capital = 35000
-stocks_to_monitor = ["CVNA"]
+# List of stocks to monitor
+stocks_to_monitor = ["META", "AAPL", "AMZN", "CVNA", "PTON", "TSLA", "FTCH", "AMC", "MARA", "ROKU"]
 
 class InsufficientCapitalError(Exception):
     pass
@@ -298,7 +299,7 @@ def start_trading():
             time.sleep(30)
 
     except KeyboardInterrupt:
-        print("Trading stopped by user.")
+        print(": Trading stopped by user.")
     except Exception as e:
         print(f"An error occurred while trading stocks: {str(e)}")
 
